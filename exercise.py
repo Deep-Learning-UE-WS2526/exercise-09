@@ -46,9 +46,9 @@ from keras.utils import to_categorical
 max_len = max([len(s) for s in sentences])
 
 # extract the word index
-x = np.array([ np.array([ w[0] for w in s ]) for s in sentences ])
+x = [[w[0] for w in s] for s in sentences]
 # extract the tag index
-y = np.array([ np.array([ w[2] for w in s ]) for s in sentences ])
+y = [[w[2] for w in s] for s in sentences]
 
 # shorter sentences are now padded to same length, using (index of) padding symbol
 x = pad_sequences(maxlen = max_len, sequences = x,
