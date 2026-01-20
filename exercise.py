@@ -79,10 +79,16 @@ model.summary()
 model.compile(optimizer='Adam',
   loss = 'categorical_crossentropy', metrics = ['accuracy'])
 
+# Step 3
+token_labels = np.argmax((y_train), axis=2)
+sample_weight = np.ones(token_labels.shape)
+sample_weight[token_labels != NO_TAG_IDX] = 2.0
+
 history = model.fit(
     x_train, np.array(y_train),
+    sample_weight=sample_weight, #
     batch_size = 64,
-    epochs = 1,
+    epochs = 5, #
     verbose = 1
 )
 
