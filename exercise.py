@@ -8,15 +8,17 @@ data = pd.read_csv("data/gmb.csv",encoding = 'latin1')
 # -- but only for the first token of each sentence.
 # The following line fills the rows downwards.
 data = data.fillna(method = 'ffill')
+#nimmt den letzten Wert, den er kennt, und kopiert ihn so lange in die leeren Zeilen darunter, bis ein neuer Wert kommt.
+#Sentence 1 überall ausfüllen bis sentence 2 auftaucht
 
 # create a list of unique words and assign an integer number to it
-unique_words, coded_words = np.unique(data["Word"], return_inverse=True)
-data["Word_idx"] = coded_words
+unique_words, coded_words = np.unique(data["Word"], return_inverse=True) #np.unique: Jedes Wort bekommt eine eindeutige ID
+data["Word_idx"] = coded_words #Wort-IDs als neue Spalte in der csv Tabelle speichern
 EMPTY_WORD_IDX = len(unique_words)
-np.array(unique_words.tolist().append("_____"))
+np.array(unique_words.tolist().append("_____")) #Platzhalter für Leerstellen
 num_words = len(unique_words)+1
 
-# create a list of unique tags and assign an integer number to it
+# create a list of unique tags and assign an integer number to it (Named entitiy tags)
 unique_tags, coded_tags = np.unique(data["Tag"], return_inverse=True)
 data["Tag_idx"]  = coded_tags
 NO_TAG_IDX = unique_tags.tolist().index("O")
@@ -34,7 +36,7 @@ def get_sentences(data):
       s["Word_idx"].values.tolist(),
       s["POS"].values.tolist(),
       s["Tag_idx"].values.tolist())]
-  grouped = data.groupby("Sentence #").apply(agg_func)
+  grouped = data.groupby("Sentence #").apply(agg_func) #komplette Sätze aus der Tabelle zusammenstellen.
   return [s for s in grouped]
 
 sentences = get_sentences(data)
@@ -79,11 +81,22 @@ model.summary()
 model.compile(optimizer='Adam',
   loss = 'categorical_crossentropy', metrics = ['accuracy'])
 
+# Gewichtung erstellen. Das "O" Tag ist unwichtig (1), alles andere ist wichtiger (20)
+tag_weights = np.ones(num_words_tag)
+for i in range(num_words_tag):
+    if i != NO_TAG_IDX:
+        tag_weights[i] = 20 
+
+# Jedem Wort in Sätzen ein Gewicht zuweisen
+y_train_indices = np.argmax(y_train, axis=2)
+sample_weights = np.take(tag_weights, y_train_indices)
+
 history = model.fit(
     x_train, np.array(y_train),
     batch_size = 64,
-    epochs = 1,
-    verbose = 1
+    epochs = 5,
+    verbose = 1,
+    sample_weight = sample_weights
 )
 
 model.evaluate(x_test, np.array(y_test))
