@@ -28,7 +28,7 @@ num_words_tag = len(unique_tags)
 # We are interested in sentence-wise processing.
 # Therefore, we use a function that gives us individual sentences.
 def get_sentences(data):
-  n_sent=1
+  #n_sent=1
   agg_func = lambda s:[(w,p,t)
     for w,p,t in zip(
       s["Word_idx"].values.tolist(),
@@ -65,8 +65,26 @@ y = np.array([to_categorical(i, num_classes = num_words_tag) for i in  y])
 from sklearn.model_selection import train_test_split
 
 x_train,x_test,y_train,y_test = train_test_split(x,y,test_size = 0.1,random_state=1)
+y_train_idx = np.argmax(y_train, axis=2)  # shape: (n_train, max_len)
 
-from tensorflow.keras import models, layers, optimizers
+flat = y_train_idx.flatten()
+flat = flat[flat != NO_TAG_IDX]  # padding raus (in deinem Code ist das "O"-Index!)
+counts = np.bincount(flat, minlength=num_words_tag)
+
+N = counts.sum()
+K = (counts > 0).sum()
+
+class_weights = np.ones(num_words_tag, dtype=np.float32)
+class_weights[counts > 0] = N / (K * counts[counts > 0])
+
+sample_weight_t = class_weights[y_train_idx]          # (n_train, max_len)
+sample_weight_t[y_train_idx == NO_TAG_IDX] = 0.0      # padding ignorieren
+
+
+
+
+
+from keras import models, layers, optimizers
 
 model = models.Sequential()
 model.add(layers.Input(shape = (max_len,)))
@@ -83,7 +101,8 @@ history = model.fit(
     x_train, np.array(y_train),
     batch_size = 64,
     epochs = 1,
-    verbose = 1
+    verbose = 1,
+    sample_weight=sample_weight_t
 )
 
 model.evaluate(x_test, np.array(y_test))
