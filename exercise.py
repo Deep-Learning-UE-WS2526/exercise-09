@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 # read in CSV file
-data = pd.read_csv("data/gmb.csv",encoding = 'latin1')
+data = pd.read_csv("C:/Users/maris/Documents/Uni/IV/Deep Learning/exercise-09/data/gmb.csv",encoding = 'latin1')
 
 # the first column of the file contains the sentence number
 # -- but only for the first token of each sentence.
@@ -23,7 +23,8 @@ NO_TAG_IDX = unique_tags.tolist().index("O")
 num_words_tag = len(unique_tags)
 
 # for verification and inspection, we can inspect the table so far
-# data[1:20]
+print("inspection:")
+print(data[1:20])
 
 # We are interested in sentence-wise processing.
 # Therefore, we use a function that gives us individual sentences.
@@ -75,6 +76,10 @@ model.add(layers.LSTM(units = 5, return_sequences = True))
 model.add(layers.Dense(num_words_tag, activation = 'softmax'))
 model.summary()
 
+y_train_indices = np.argmax(y_train, axis=2)
+sw = (y_train_indices != NO_TAG_IDX).astype(float)
+sw = sw * 2.0 + (y_train_indices == NO_TAG_IDX).astype(float) * 0.1
+
 # We use a different optimizer this time
 model.compile(optimizer='Adam',
   loss = 'categorical_crossentropy', metrics = ['accuracy'])
@@ -83,7 +88,8 @@ history = model.fit(
     x_train, np.array(y_train),
     batch_size = 64,
     epochs = 1,
-    verbose = 1
+    verbose = 1,
+    sample_weight = sw
 )
 
 model.evaluate(x_test, np.array(y_test))
