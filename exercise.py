@@ -80,19 +80,25 @@ model.compile(optimizer='Adam',
   loss = 'categorical_crossentropy', metrics = ['accuracy'])
 
 history = model.fit(
-    x_train, np.array(y_train),
+    x_train,
+    y_train,
+    sample_weight = sample_weights,
     batch_size = 64,
-    epochs = 1,
+    epochs = 3,
     verbose = 1
 )
-
 model.evaluate(x_test, np.array(y_test))
 
 from sklearn.metrics import classification_report
 
 Y_test = np.argmax(y_test, axis=2)
-
 y_pred = np.argmax(model.predict(x_test), axis=2)
 
+mask_test = (x_test != EMPTY_WORD_IDX)
 
-print(classification_report(Y_test.flatten(), y_pred.flatten(), zero_division=0, target_names=unique_tags))
+print(classification_report(
+    Y_test[mask_test].flatten(),
+    y_pred[mask_test].flatten(),
+    zero_division=0,
+    target_names=unique_tags
+))
